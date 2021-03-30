@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Todos
 #from models import Person
 
 app = Flask(__name__)
@@ -38,6 +38,56 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+# GET of Todos 
+@app.route('/get_todos', methods=['GET'])
+def get_todos():
+
+    # get all the people
+    result = Todos.query.all()
+
+    # map the results and your list of people  inside of the all_people variable
+    all_todos = list(map(lambda x: x.serialize(), result))
+
+    return jsonify(all_todos), 200
+
+# POST of Todos 
+@app.route('/add_todo', methods=['POST'])
+def add_todo():
+
+    request_body = request.get_json()
+    new_todo = Todos(todo=request_body["todo"])
+    db.session.add(new_todo)
+    db.session.commit()
+
+    return jsonify("La tarea fue agregada de manera satisfactoria"), 200
+
+# PUT of Todos 
+@app.route('/upd_todo/<int:todoid>', methods=['PUT'])
+def upd_todo(todoid):
+    
+    todo = Todos.query.get(todoid)
+    if todo is None:
+        raise APIException('Todo not found', status_code=403)
+
+    request_body = request.get_json()
+    if "todo" in request_body:
+        todo.todo = request_body["todo"]
+    
+    db.session.commit()
+
+# DELETE of Todos 
+@app.route('/del_todo/<int:todoid>', methods=['DELETE'])
+def del_todo(todoid):
+    
+    todo = Todos.query.get(todoid)
+    if todo is None:
+        raise APIException('Todo not found', status_code=403)
+
+    db.session.delete(todo)
+    db.session.commit()
+
+    return jsonify("La tarea fue eliminada de manera satisfactoria"), 200
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
